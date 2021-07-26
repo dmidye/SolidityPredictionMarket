@@ -1,35 +1,92 @@
 const { assert } = require('chai');
-const ganache = require('ganache-cli');
-const Web3 = require('web3');
-const web3 = new Web3(ganache.provider());
 
 // bring contract into file
-const HelloWorld = artifacts.require('./contracts/HelloWorld.sol'); 
+const Predictor = artifacts.require('./contracts/Predictor.sol'); 
 
 require('chai').use(require('chai-as-promised')).should();
 
-contract('Hello', ([deployer, author, tipper]) => {
+contract( 'Predictor', ([deployer, creator, accepter]) => {
     let contract;
 
-    // gives each test a copy of the contract, reduces code reuse
+    // gives each testing stage a copy of the contract, reduces code reuse
     before(async () => {
-        contract = await HelloWorld.deployed();
+        contract = await Predictor.deployed();
     })
 
-    // test that a valid creator address is retrieved
     describe('deployment', async () => {
         it('deploys successfully', async () => {
-            const address = contract.address;
+            const address = await contract.address;
             assert.notEqual(address, '0x0');
             assert.notEqual(address, 'null');
             assert.notEqual(address, 'undefined');
             assert.notEqual(address, '');
-
         })
 
-        it('returns hello world greeting', async () => {
-            const greeting = await contract.greeting();
-            assert.equal(greeting, "Hello World");
+        it('returns correct name', async () => {
+            const name = await contract.name();
+            assert.equal(name, 'Prediction Marketplace');
+        })
+    })
+
+    describe('predictions', async() => {
+        let result, predictionCount, beforeCreateBalance, contractAddress;
+
+        before(async () => {
+            // when a prediction is created, pass the betAmount they specify through msg.value
+            // betAmount for each prediction is set when the function event is emitted
+            contractAddress = await contract.address;
+            beforeCreateBalance = await web3.eth.getBalance(contractAddress);
+            beforeCreateBalance = new web3.utils.BN(beforeCreateBalance);
+
+            result = await contract.createPrediction('Price of lumber', 'Price of lumber increases 10%', { from: creator, value: web3.utils.toWei('.1', 'ether') });
+            predictionCount = await contract.predictionCount();     
+        })
+
+        it('creates a prediction', async () => {
+            assert.equal(predictionCount, 1);
+            
+            const event = result.logs[0].args;
+
+            assert.equal(event.id.toNumber(), predictionCount.toNumber(), 'id is correct');
+            assert.equal(event.creator, creator, 'owner is correct');
+            assert.equal(event.name, 'Price of lumber', 'name is correct');
+            assert.equal(event.betAmount, web3.utils.toWei('.1', 'ether').toString(), 'betAmount is correct');
+            assert.equal(event.acceptanceCriteria, 'Price of lumber increases 10%', 'acceptanceCriteria is correct');
+            assert.equal(event.complete, false, 'complete is correct');
+
+            let afterCreateBalance, expectedBalanceAfterCreate, betAmount;
+            afterCreateBalance = await web3.eth.getBalance(contractAddress);
+            afterCreateBalance = new web3.utils.BN(afterCreateBalance);
+
+            betAmount = await web3.utils.toWei('.1', 'ether');
+            betAmount = new web3.utils.BN(betAmount)
+
+            expectedBalanceAfterCreate = beforeCreateBalance.add(betAmount);
+
+            assert.equal(expectedBalanceAfterCreate.toString(), afterCreateBalance.toString(), "ether was transfered from creator to contract");
+        })
+
+        it('can accept a prediction', async () => {
+            beforeAcceptBalance = await web3.eth.getBalance(contractAddress);
+            beforeAcceptBalance = new web3.utils.BN(beforeAcceptBalance);
+
+            // call acceptPrediction function, the _id will be passed based on what json value is recieved
+            let acceptedPrediction;
+            acceptedPrediction = await contract.acceptPrediction(1, { from: accepter, value: web3.utils.toWei('.1', 'ether') });
+            
+            // test that accepter is set
+            assert.equal(acceptedPrediction.logs[0].args.accepter, accepter, 'accepter is correct');
+
+            // test that accepter gave money to contract
+            afterAcceptBalance = await web3.eth.getBalance(contractAddress);
+            afterAcceptBalance = new web3.utils.BN(afterAcceptBalance);
+
+            betAmount = await web3.utils.toWei('.1', 'ether');
+            betAmount = new web3.utils.BN(betAmount)
+
+            const expectedBalance = beforeAcceptBalance.add(betAmount);
+
+            assert.equal(afterAcceptBalance.toString(), expectedBalance.toString(), "accepter paid contract");
         })
     })
 })
