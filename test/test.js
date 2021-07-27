@@ -5,7 +5,7 @@ const Predictor = artifacts.require('./contracts/Predictor.sol');
 
 require('chai').use(require('chai-as-promised')).should();
 
-contract( 'Predictor', ([deployer, creator, accepter]) => {
+contract( 'Predictor', ([completer, creator, accepter]) => {
     let contract;
 
     // gives each testing stage a copy of the contract, reduces code reuse
@@ -38,7 +38,7 @@ contract( 'Predictor', ([deployer, creator, accepter]) => {
             beforeCreateBalance = await web3.eth.getBalance(contractAddress);
             beforeCreateBalance = new web3.utils.BN(beforeCreateBalance);
 
-            result = await contract.createPrediction('Price of lumber', 'Price of lumber increases 10%', { from: creator, value: web3.utils.toWei('.1', 'ether') });
+            result = await contract.createPrediction('Price of lumber', 'Price of lumber increases 10%', completer, { from: creator, value: web3.utils.toWei('.1', 'ether') });
             predictionCount = await contract.predictionCount();     
         })
 
@@ -87,6 +87,34 @@ contract( 'Predictor', ([deployer, creator, accepter]) => {
             const expectedBalance = beforeAcceptBalance.add(betAmount);
 
             assert.equal(afterAcceptBalance.toString(), expectedBalance.toString(), "accepter paid contract");
+        })
+
+        it('can complete a prediction and pay out to winner with 2 participants', async () => {
+            beforeCompleteBalance = await web3.eth.getBalance(creator);
+            beforeCompleteBalance = new web3.utils.BN(beforeCompleteBalance);
+
+            console.log("before balance", beforeCompleteBalance.toString())
+
+            let winner; // for clarity
+            winner = creator;
+
+            // call acceptPrediction function, the _id will be passed based on what json value is recieved
+            completedPrediction = await contract.completePrediction(1, winner, { from: completer });
+            
+            // test that accepter is set
+            assert.equal(completedPrediction.logs[0].args.complete, true, 'complete is set to true');
+
+            // test that accepter gave money to contract
+            afterCompleteBalance = await web3.eth.getBalance(creator); // should be .2 ether higher than before balance (creator and accepter each put in .1)
+            afterCompleteBalance = new web3.utils.BN(afterCompleteBalance);
+
+            betAmount = await web3.utils.toWei('.1', 'ether');
+            betAmount = new web3.utils.BN(betAmount);
+            betAmount = betAmount.add(betAmount); // double betAmount
+
+            const expectedBalance = beforeCompleteBalance.add(betAmount);
+
+            assert.equal(afterCompleteBalance.toString(), expectedBalance.toString(), "accepter paid contract");
         })
     })
 })
