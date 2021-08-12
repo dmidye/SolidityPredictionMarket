@@ -57,12 +57,12 @@ contract Predictor {
 
     // create predictions
     function createPrediction(string memory _name, string memory _acceptanceCriteria, address _completer) public payable {
-        require(bytes(_name).length > 0);
-        require(bytes(_acceptanceCriteria).length > 0);
+        // require(bytes(_name).length > 0);
+        // require(bytes(_acceptanceCriteria).length > 0);
+        // require(_betAmount > 0);
         uint _betAmount = msg.value;
-        require(_betAmount > 0);
-        
         predictionCount++;
+
         // create the prediction
         Prediction memory prediction = Prediction(predictionCount, _completer, msg.sender, address(0), _name, _acceptanceCriteria, _betAmount, false);
 
@@ -105,11 +105,20 @@ contract Predictor {
         predictions[_id] = _prediction;
 
         // pay the winner
-        address(winner).transfer(_prediction.betAmount*2); // would need to adjust if there are more than 2 participants
+        address(winner).transfer(_prediction.betAmount*2); // would need to adjust if there are more than 2 participants(need to think more about how more than 2 participants would work)
 
         emit PredictionComplete(predictionCount, _prediction.completer, _prediction.creator, _prediction.accepter, _prediction.name, _prediction.acceptanceCriteria, _prediction.betAmount, true);
     }
 
+
+    // what else?
+    // probably need to be able to null out a prediction for some cases
+    // Add a timeout for each prediction?
+    // it sucks that a third party has to physically complete a prediction
+    // maybe add option for betting different amounts, but how would it work
+    //  - the creator sets original amount
+    //  - a potential accepter proposes a different amount and the creator either accepts or denies
+    //  - alternatively the potential accepter just creates a new prediction
 
 
 

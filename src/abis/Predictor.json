@@ -8470,16 +8470,15 @@
     "version": "0.5.16+commit.9c3226ce.Emscripten.clang"
   },
   "networks": {
-    "4": {
+    "5777": {
       "events": {},
       "links": {},
-      "address": "0xCF210e6B5008cA9bd69681C62A9D62B19A07Fc9f",
-      "transactionHash": "0xc2520907f6219c95b9c5af9d6bff30f2adb7f35ac0fd4bbf9f7ed8b41a65c03b"
+      "address": "0x14f0Ed1818381C60FF871b097576caBe2f641Bf6",
+      "transactionHash": "0x58b3f8728dea036a290fa938a8238bbed7bb401d7f0c114e11d71025f6b8801b"
     }
   },
   "schemaVersion": "3.4.1",
-  "updatedAt": "2021-08-05T00:23:55.614Z",
-  "networkType": "ethereum",
+  "updatedAt": "2021-08-04T01:25:08.693Z",
   "devdoc": {
     "methods": {}
   },
